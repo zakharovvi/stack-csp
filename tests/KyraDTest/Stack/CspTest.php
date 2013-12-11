@@ -31,31 +31,21 @@ use Symfony\Component\HttpFoundation\Response;
  * @copyright 2013 Kyra D.
  * @license MIT
  * @link https://github.com/KyraD/stack-csp
- * @package KyraD\Stack\Csp
- * @version 0.1.0
  *
  * @covers \KyraD\Stack\Csp
  */
 class CspTest extends PHPUnit_Framework_TestCase
 {
-    /**
-     * @var \Symfony\Component\HttpKernel\HttpKernelInterface|\PHPUnit_Framework_MockObject_MockObject
-     */
+    /** @var \Symfony\Component\HttpKernel\HttpKernelInterface|\PHPUnit_Framework_MockObject_MockObject */
     private $app;
 
-    /**
-     * @var Config
-     */
+    /** @var Config */
     private $config;
 
-    /**
-     * @var Csp
-     */
+    /** @var Csp */
     private $csp;
 
-    /**
-     * @var
-     */
+    /** @var */
     private $request;
 
     /**
@@ -63,14 +53,14 @@ class CspTest extends PHPUnit_Framework_TestCase
      */
     public function setUp()
     {
-        $this->app    = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
+        $this->app = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
         $this->config = new Config();
-        $this->csp    = new Csp($this->app, $this->config);
+        $this->csp = new Csp($this->app, $this->config);
     }
 
     public function testSimpleHandle()
     {
-        $request  = $this->buildRequest();
+        $request = $this->buildRequest();
         $response = $this->buildResponse();
 
         $this
@@ -89,7 +79,7 @@ class CspTest extends PHPUnit_Framework_TestCase
 
     public function testSetsEnforcePolicyHeader()
     {
-        $request  = $this->buildRequest();
+        $request = $this->buildRequest();
         $response = $this->buildResponse();
 
         $this->config->enforcePolicy = ['foo' => ['bar', 'baz']];
@@ -100,7 +90,6 @@ class CspTest extends PHPUnit_Framework_TestCase
             ->method('get')
             ->with('user-agent')
             ->will($this->returnValue('Firefox 123'));
-
 
         $response->headers->expects($this->once())->method('set')->with('Content-Security-Policy', 'foo bar baz;');
 
@@ -115,8 +104,8 @@ class CspTest extends PHPUnit_Framework_TestCase
      */
     private function buildRequest()
     {
-        $request          = new Request();
-        $headers          = $this->getMock('Symfony\Component\HttpFoundation\HeaderBag');
+        $request = new Request();
+        $headers = $this->getMock('Symfony\Component\HttpFoundation\HeaderBag');
         $request->headers = $headers;
 
         return $request;
@@ -130,8 +119,8 @@ class CspTest extends PHPUnit_Framework_TestCase
      */
     private function buildResponse()
     {
-        $response          = new Response();
-        $headers           = $this->getMock('Symfony\Component\HttpFoundation\HeaderBag');
+        $response = new Response();
+        $headers = $this->getMock('Symfony\Component\HttpFoundation\HeaderBag');
         $response->headers = $headers;
 
         return $response;

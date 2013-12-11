@@ -18,7 +18,7 @@
 
 ini_set('error_reporting', E_ALL | E_STRICT);
 
-$files = array(__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php');
+$files = [__DIR__ . '/../vendor/autoload.php', __DIR__ . '/../../../autoload.php'];
 
 foreach ($files as $file) {
     if (file_exists($file)) {
@@ -28,7 +28,7 @@ foreach ($files as $file) {
     }
 }
 
-if (! isset($loader)) {
+if (!isset($loader)) {
     throw new RuntimeException('vendor/autoload.php could not be found. Did you run `php composer.phar install`?');
 }
 
