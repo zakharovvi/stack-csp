@@ -140,15 +140,7 @@ class Config
         foreach ($removePolicy as $key => $values) {
 
             if (isset($this->{$policyType}[$key])) {
-
-                $arrayDiff = array_diff((array)$this->{$policyType}[$key], (array)$values);
-
-                if (empty($arrayDiff)) {
-                    unset($this->{$policyType}[$key]);
-                    continue;
-                }
-
-                $this->{$policyType}[$key] = $arrayDiff;
+                $this->{$policyType}[$key] = array_diff((array)$this->{$policyType}[$key], (array)$values);
             }
         }
     }

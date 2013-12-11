@@ -53,7 +53,10 @@ class Csp implements HttpKernelInterface
         $header = '';
 
         foreach ($policy as $directive => $values) {
-            $header .= "$directive " . implode(' ', $values) . ';';
+
+            if (0 < count($values)) {
+                $header .= "$directive " . implode(' ', $values) . ';';
+            }
         }
 
         return $header;
