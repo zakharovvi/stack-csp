@@ -2,14 +2,14 @@
 namespace KyraD\Stack\Csp;
 
 /**
- * Validates CSP directives and values
+ * Parses and validates CSP directives and values for a policy
  *
  * @author Kyra D. <kyra@existing.me>
  * @license MIT
  * @link https://github.com/KyraD/stack-csp
  * @todo Update to CSP 1.1 when no longer a draft
  */
-class Validate
+class Policy
 {
     /**
      * @var array
@@ -42,11 +42,45 @@ class Validate
         ]
     ];
 
+    /** @var array */
+    private $policy = [];
+
+    /**
+     * @param array $cspPolicy
+     */
+    public function __construct(array $cspPolicy = [])
+    {
+        $this->policy = $cspPolicy;
+        return $this;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPolicy()
+    {
+        return $this->policy;
+    }
+
+    public function parsePolicy()
+    {
+        array_walk($this->policy, [$this, 'validatePolicy']);
+    }
+
+    /**
+     * @param $key
+     * @param array $rules
+     */
+    public function replaceRules($key, array $rules)
+    {
+        $this->policy[$key] = $rules;
+    }
+
     /**
      * @param $values
      * @param $directive
      */
-    public function parsePolicy(&$values, $directive)
+    private function validatePolicy(&$values, $directive)
     {
         /** pass by reference to apply this change to policy as well */
         $values = array_unique((array)$values);
@@ -74,7 +108,7 @@ class Validate
 
             if (in_array($value, $this->directives[$directive])) {
 
-                /** pass by reference to quote value in policy */
+                /** pass by reference to quote keyword in policy */
                 $value = "'$value'";
             }
         }

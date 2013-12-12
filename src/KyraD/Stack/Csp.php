@@ -39,22 +39,24 @@ class Csp implements HttpKernelInterface
     public function handle(Request $request, $type = HttpKernelInterface::MASTER_REQUEST, $catch = true)
     {
         $response = $this->app->handle($request, $type, $catch);
-        $response = $this->setCspHeaders($request, $response);
+        $this->setCspHeaders($request, $response);
 
         return $response;
     }
 
     /**
-     * @param array $policy
+     * @param $policyType
      * @return string
      */
-    private function buildHeaderValue(array $policy)
+    private function buildHeaderValue($policyType)
     {
         $header = '';
 
-        foreach ($policy as $directive => $values) {
+        foreach ($this->config->getPolicy($policyType) as $directive => $values) {
 
             if (0 < count($values)) {
+
+                /** skip empty directives */
                 $header .= "$directive " . implode(' ', $values) . ';';
             }
         }
@@ -65,21 +67,13 @@ class Csp implements HttpKernelInterface
     /**
      * @param Request $request
      * @param Response $response
-     * @return Response
      */
     private function setCspHeaders(Request $request, Response $response)
     {
         $cspHeaders = $this->getCspHeaders($request->headers->get('user-agent'));
 
-        if ($this->config->enforcePolicy) {
-            $response->headers->set($cspHeaders[0], $this->buildHeaderValue($this->config->enforcePolicy));
-        }
-
-        if ($this->config->reportOnlyPolicy) {
-            $response->headers->set($cspHeaders[1], $this->buildHeaderValue($this->config->reportOnlyPolicy));
-        }
-
-        return $response;
+        $response->headers->set($cspHeaders[0], $this->buildHeaderValue('enforce'));
+        $response->headers->set($cspHeaders[1], $this->buildHeaderValue('report'));
     }
 
     /**

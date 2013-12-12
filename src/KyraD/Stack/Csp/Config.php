@@ -12,26 +12,33 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class Config
 {
-    /** @var array */
-    public $enforcePolicy = [];
+    /** @var Policy */
+    private $enforce;
 
-    /** @var array */
-    public $reportOnlyPolicy = [];
+    /** @var Policy */
+    private $report;
 
     /**
-     * @param array $policy
+     * @param array $policies
      */
-    public function __construct(array $policy = [])
+    public function __construct(array $policies = [])
     {
-        if (isset($policy['enforce'])) {
-            $this->enforcePolicy = $policy['enforce'];
-        }
+        $policy = (isset($policies['enforce'])) ? $policies['enforce'] : [];
+        $this->enforce = new Policy($policy);
 
-        if (isset($policy['report-only'])) {
-            $this->reportOnlyPolicy = $policy['report-only'];
-        }
+        $policy = (isset($policies['report'])) ? $policies['report'] : [];
+        $this->report = new Policy($policy);
 
         return $this;
+    }
+
+    /**
+     * @param $policyType
+     * @return mixed
+     */
+    public function getPolicy($policyType)
+    {
+        return $this->$policyType->getPolicy();
     }
 
     /**
@@ -43,8 +50,8 @@ class Config
 
             $this->processRoutePolicies($request);
 
-            array_walk($this->enforcePolicy, [new Validate, 'parsePolicy']);
-            array_walk($this->reportOnlyPolicy, [new Validate, 'parsePolicy']);
+            $this->enforce->parsePolicy();
+            $this->report->parsePolicy();
 
         } catch (\UnexpectedValueException $e) {
             exit('Unexpected value: ' . $e->getMessage());
@@ -56,18 +63,18 @@ class Config
      */
     private function processRoutePolicies(Request $request)
     {
-        if ($request->attributes->get('clearCspPolicy')) {
-            $this->clearCspPolicy($request->attributes->get('clearCspPolicy'));
+        if ($request->attributes->get('cspReset')) {
+            $this->clearPolicy($request->attributes->get('cspReset'));
         }
 
-        if (is_array($request->attributes->get('removeFromCspPolicy'))) {
-            $policy = $request->attributes->get('removeFromCspPolicy');
-            array_walk($policy, [$this, 'removeFromCspPolicy']);
+        if (is_array($request->attributes->get('cspRemove'))) {
+            $policy = $request->attributes->get('cspRemove');
+            array_walk($policy, [$this, 'removeFromPolicy']);
         }
 
-        if (is_array($request->attributes->get('addToCspPolicy'))) {
-            $policy = $request->attributes->get('addToCspPolicy');
-            array_walk($policy, [$this, 'addToCspPolicy']);
+        if (is_array($request->attributes->get('cspAdd'))) {
+            $policy = $request->attributes->get('cspAdd');
+            array_walk($policy, [$this, 'addToPolicy']);
         }
     }
 
@@ -75,25 +82,23 @@ class Config
      * @param $policyType
      * @throws \UnexpectedValueException
      */
-    private function clearCspPolicy($policyType)
+    private function clearPolicy($policyType)
     {
-        if ('enforce' === $policyType) {
-            $this->enforcePolicy = [];
-            return;
+        switch ($policyType) {
+            case 'enforce':
+                $this->enforce = new Policy();
+                break;
+            case 'report':
+                $this->report = new Policy();
+                break;
+            case 'all':
+            case 'both':
+                $this->enforce = new Policy();
+                $this->report = new Policy();
+                break;
+            default:
+                throw new \UnexpectedValueException("'$policyType' is not a valid clear policy option");
         }
-
-        if ('report-only' === $policyType) {
-            $this->reportOnlyPolicy = [];
-            return;
-        }
-
-        if ('all' === $policyType || 'both' === $policyType) {
-            $this->enforcePolicy = [];
-            $this->reportOnlyPolicy = [];
-            return;
-        }
-
-        throw new \UnexpectedValueException("'$policyType' is not a valid clear policy option");
     }
 
     /**
@@ -101,19 +106,13 @@ class Config
      * @param $policyType
      * @throws \UnexpectedValueException
      */
-    private function addToCspPolicy(array $addPolicy, $policyType)
+    private function addToPolicy(array $addPolicy, $policyType)
     {
-        if ('enforce' === $policyType) {
-            $this->enforcePolicy = array_merge_recursive($this->enforcePolicy, $addPolicy);
-            return;
+        if (!isset($this->$policyType)) {
+            throw new \UnexpectedValueException("'cspAdd' supplied an invalid policy type of '$policyType'");
         }
 
-        if ('report-only' === $policyType) {
-            $this->reportOnlyPolicy = array_merge_recursive($this->reportOnlyPolicy, $addPolicy);
-            return;
-        }
-
-        throw new \UnexpectedValueException("'addToCspPolicy' supplied an invalid policy type of '$policyType'");
+        $this->$policyType = array_merge_recursive($this->$policyType, $addPolicy);
     }
 
     /**
@@ -121,14 +120,14 @@ class Config
      * @param $policyType
      * @throws \UnexpectedValueException
      */
-    private function removeFromCspPolicy(array $removePolicy, $policyType)
+    private function removeFromPolicy(array $removePolicy, $policyType)
     {
-        if ('enforce' !== $policyType && 'report-only' !== $policyType) {
-            throw new \UnexpectedValueException("invalid policy type of '$policyType' for 'removeFromCspPolicy'");
+        if (!isset($this->$policyType)) {
+            throw new \UnexpectedValueException("invalid policy type of '$policyType' for 'cspRemove'");
         }
 
-        $this->applyPolicyDiff($removePolicy, 'enforcePolicy');
-        $this->applyPolicyDiff($removePolicy, 'reportOnlyPolicy');
+        $this->applyPolicyDiff($removePolicy, 'enforce');
+        $this->applyPolicyDiff($removePolicy, 'report');
     }
 
     /**
@@ -139,9 +138,12 @@ class Config
     {
         foreach ($removePolicy as $key => $values) {
 
-            if (isset($this->{$policyType}[$key])) {
-                $this->{$policyType}[$key] = array_diff((array)$this->{$policyType}[$key], (array)$values);
+            if (!isset($this->$policyType->getPolicy()[$key])) {
+                continue;
             }
+
+            $rules = $this->$policyType->getPolicy()[$key];
+            $this->$policyType->replaceRules($key, array_diff((array)$rules, (array)$values));
         }
     }
 }
