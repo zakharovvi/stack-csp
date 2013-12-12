@@ -62,9 +62,14 @@ class Policy
         return $this->policy;
     }
 
-    public function parsePolicy()
+    public function clear()
     {
-        array_walk($this->policy, [$this, 'validatePolicy']);
+        $this->policy = [];
+    }
+
+    public function parse()
+    {
+        array_walk($this->policy, [$this, 'validate']);
     }
 
     /**
@@ -80,7 +85,7 @@ class Policy
      * @param $values
      * @param $directive
      */
-    private function validatePolicy(&$values, $directive)
+    private function validate(&$values, $directive)
     {
         /** pass by reference to apply this change to policy as well */
         $values = array_unique((array)$values);

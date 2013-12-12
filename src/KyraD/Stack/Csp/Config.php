@@ -50,8 +50,8 @@ class Config
 
             $this->processRoutePolicies($request);
 
-            $this->enforce->parsePolicy();
-            $this->report->parsePolicy();
+            $this->enforce->parse();
+            $this->report->parse();
 
         } catch (\UnexpectedValueException $e) {
             exit('Unexpected value: ' . $e->getMessage());
@@ -86,15 +86,15 @@ class Config
     {
         switch ($policyType) {
             case 'enforce':
-                $this->enforce = new Policy();
+                $this->enforce->clear();
                 break;
             case 'report':
-                $this->report = new Policy();
+                $this->report->clear();
                 break;
             case 'all':
             case 'both':
-                $this->enforce = new Policy();
-                $this->report = new Policy();
+                $this->enforce->clear();
+                $this->report->clear();
                 break;
             default:
                 throw new \UnexpectedValueException("'$policyType' is not a valid clear policy option");

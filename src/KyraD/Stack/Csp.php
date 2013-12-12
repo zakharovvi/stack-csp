@@ -54,9 +54,8 @@ class Csp implements HttpKernelInterface
 
         foreach ($this->config->getPolicy($policyType) as $directive => $values) {
 
+            /** skip empty directives */
             if (0 < count($values)) {
-
-                /** skip empty directives */
                 $header .= "$directive " . implode(' ', $values) . ';';
             }
         }
