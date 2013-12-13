@@ -28,8 +28,6 @@ class Config
 
         $policy = (isset($policies['report'])) ? $policies['report'] : [];
         $this->report = new Policy($policy);
-
-        return $this;
     }
 
     /**

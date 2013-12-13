@@ -71,8 +71,13 @@ class Csp implements HttpKernelInterface
     {
         $cspHeaders = $this->getCspHeaders($request->headers->get('user-agent'));
 
-        $response->headers->set($cspHeaders[0], $this->buildHeaderValue('enforce'));
-        $response->headers->set($cspHeaders[1], $this->buildHeaderValue('report'));
+        if ($this->buildHeaderValue('enforce')) {
+            $response->headers->set($cspHeaders[0], $this->buildHeaderValue('enforce'));
+        }
+
+        if ($this->buildHeaderValue('report')) {
+            $response->headers->set($cspHeaders[1], $this->buildHeaderValue('report'));
+        }
     }
 
     /**

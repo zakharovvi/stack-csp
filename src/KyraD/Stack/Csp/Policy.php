@@ -11,10 +11,8 @@ namespace KyraD\Stack\Csp;
  */
 class Policy
 {
-    /**
-     * @var array
-     */
-    private $directives = [
+    /** @var array */
+    private static $directives = [
         'report-uri' => [],
         'sandbox' => [
             'allow-forms',
@@ -91,27 +89,27 @@ class Policy
         $values = array_unique((array)$values);
 
         if ('report-uri' === $directive) {
-            array_walk($values, [$this, 'isValidReportUri']);
+            array_walk($values, [$this, 'assertValidReportUri']);
             return;
         }
 
         if ('sandbox' === $directive) {
-            array_walk($values, [$this, 'isValidSandboxKeyword']);
+            array_walk($values, [$this, 'assertValidSandboxKeyword']);
             return;
         }
 
-        $this->isValidDirectiveName($directive);
+        $this->assertValidDirectiveName($directive);
 
         if (1 < count($values)) {
-            $this->isValidNoneSrcList($values, $directive);
-            $this->isValidWildcardSrcList($values, $directive);
+            $this->assertValidNoneSrcList($values, $directive);
+            $this->assertValidWildcardSrcList($values, $directive);
         }
 
         foreach ($values as &$value) {
 
-            $this->isValidSrcValue($value, $directive);
+            $this->assertValidSrcValue($value, $directive);
 
-            if (in_array($value, $this->directives[$directive])) {
+            if (in_array($value, self::$directives[$directive])) {
 
                 /** pass by reference to quote keyword in policy */
                 $value = "'$value'";
@@ -124,9 +122,9 @@ class Policy
      * @param $directive
      * @throws \UnexpectedValueException
      */
-    private function isValidNoneSrcList(array $values, $directive)
+    private function assertValidNoneSrcList(array $values, $directive)
     {
-        if (in_array('none', $values) && in_array('none', $this->directives[$directive])) {
+        if (in_array('none', $values) && in_array('none', self::$directives[$directive])) {
             throw new \UnexpectedValueException("'none' DENIES ALL for '$directive' directive, but exceptions are set");
         }
     }
@@ -136,7 +134,7 @@ class Policy
      * @param $directive
      * @throws \UnexpectedValueException
      */
-    private function isValidWildcardSrcList(array $values, $directive)
+    private function assertValidWildcardSrcList(array $values, $directive)
     {
         if (in_array('*', $values)) {
             throw new \UnexpectedValueException("'*' ALLOWS ALL for '$directive' directive, but exceptions are set");
@@ -147,9 +145,9 @@ class Policy
      * @param $directive
      * @throws \UnexpectedValueException
      */
-    private function isValidDirectiveName($directive)
+    private function assertValidDirectiveName($directive)
     {
-        if (!array_key_exists($directive, $this->directives)) {
+        if (!array_key_exists($directive, self::$directives)) {
             throw new \UnexpectedValueException("'$directive' is an invalid CSP 1.0 directive");
         }
     }
@@ -158,9 +156,9 @@ class Policy
      * @param $value
      * @throws \UnexpectedValueException
      */
-    private function isValidSandboxKeyword($value)
+    private function assertValidSandboxKeyword($value)
     {
-        if (!in_array($value, $this->directives['sandbox'])) {
+        if (!in_array($value, self::$directives['sandbox'])) {
             throw new \UnexpectedValueException("'$value' is an invalid CSP 1.0 'sandbox' keyword");
         }
     }
@@ -170,7 +168,7 @@ class Policy
      * @param $directive
      * @throws \UnexpectedValueException
      */
-    private function isValidSrcValue($value, $directive)
+    private function assertValidSrcValue($value, $directive)
     {
         /** @author HamZa <https://github.com/Hamz-a> */
         $regex = '~
@@ -199,7 +197,7 @@ class Policy
             ^(?:(?&url)|(?&dataScheme)|(?&wildcard))$           # regex
         ~ix';
 
-        if (!in_array($value, $this->directives[$directive]) && !preg_match($regex, $value)) {
+        if (!in_array($value, self::$directives[$directive]) && !preg_match($regex, $value)) {
             throw new \UnexpectedValueException("'$value' is an invalid CSP 1.0 '$directive' value");
         }
     }
@@ -211,7 +209,7 @@ class Policy
      * @param $uri
      * @throws \UnexpectedValueException
      */
-    private function isValidReportUri($uri)
+    private function assertValidReportUri($uri)
     {
         /** RFC 3986 */
         $regex = '~
