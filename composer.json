@@ -1,5 +1,5 @@
 {
-    "name": "KyraD/stack-csp",
+    "name": "kyrad/stack-csp",
     "description": "Stack middleware for generating Content Security Policy (CSP) 1.0 HTTP header(s) for the request ",
     "license": "MIT",
     "keywords": ["stack php", "symfony", "silex", "csp", "security", "content security policy"],
