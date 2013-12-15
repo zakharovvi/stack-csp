@@ -90,7 +90,6 @@ class Config
                 $this->report->clear();
                 break;
             case 'all':
-            case 'both':
                 $this->enforce->clear();
                 $this->report->clear();
                 break;
