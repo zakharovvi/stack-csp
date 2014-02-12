@@ -77,7 +77,10 @@ class CspTest extends PHPUnit_Framework_TestCase
         );
     }
 
-    public function testSetsEnforcePolicyHeader()
+    /**
+     * @dataProvider userAgentDataProvider
+     */
+    public function testSetsEnforcePolicyHeader($expectedHeader, $userAgent)
     {
         $request = $this->buildRequest();
         $response = $this->buildResponse();
@@ -89,11 +92,21 @@ class CspTest extends PHPUnit_Framework_TestCase
             ->expects($this->any())
             ->method('get')
             ->with('user-agent')
-            ->will($this->returnValue('Firefox 123'));
+            ->will($this->returnValue($userAgent));
 
-        $response->headers->expects($this->once())->method('set')->with('Content-Security-Policy', 'foo bar baz;');
+        $response->headers->expects($this->once())->method('set')->with($expectedHeader, 'foo bar baz;');
 
         $this->csp->handle($request);
+    }
+
+    public function userAgentDataProvider()
+    {
+        return [
+            ['X-Content-Security-Policy', 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:22.0) Gecko/20130328 Firefox/22.0'],
+            ['X-WebKit-CSP', 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.17 (KHTML, like Gecko) Chrome/24.0.1312.60 Safari/537.17'],
+            ['X-WebKit-CSP', 'Mozilla/5.0 (iPad; CPU OS 6_0 like Mac OS X) AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0 Mobile/10A5355d Safari/8536.25'],
+            ['X-Content-Security-Policy', 'Mozilla/5.0 (compatible; MSIE 10.6; Windows NT 6.1; Trident/5.0; InfoPath.2; SLCC1; .NET CLR 3.0.4506.2152; .NET CLR 3.5.30729; .NET CLR 2.0.50727) 3gpp-gba UNTRUSTED/1.0'],
+        ];
     }
 
     /**
