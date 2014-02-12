@@ -49,34 +49,179 @@ class Policy
     public function __construct(array $cspPolicy = [])
     {
         $this->policy = $cspPolicy;
-        return $this;
+    }
+
+    public function getPolicyRules()
+    {
+        return $this->policy;
     }
 
     /**
-     * @return mixed
+     * @return string
      */
-    public function getPolicy()
+    public function getRawHeaderValue()
     {
-        return $this->policy;
+        $header = '';
+
+        foreach ($this->policy as $directive => $values) {
+
+            /** skip empty directives */
+            if (0 < count($values)) {
+                $header .= "$directive " . implode(' ', $values) . ';';
+            }
+        }
+
+        return $header;
     }
 
     public function clear()
     {
         $this->policy = [];
+        return $this;
     }
 
     public function parse()
     {
         array_walk($this->policy, [$this, 'validate']);
+        return $this;
     }
 
-    /**
-     * @param $key
-     * @param array $rules
-     */
     public function replaceRules($key, array $rules)
     {
         $this->policy[$key] = $rules;
+        return $this;
+    }
+
+    public function replaceSandbox(array $srcList)
+    {
+        $this->policy['sandbox'] = $srcList;
+        return $this;
+    }
+
+    public function addSandbox($src)
+    {
+        $this->policy['sandbox'][] = $src;
+        return $this;
+    }
+
+    public function replaceConnectSrc(array $srcList)
+    {
+        $this->policy['connect-src'] = $srcList;
+        return $this;
+    }
+
+    public function addConnectSrc($src)
+    {
+        $this->policy['connect-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceDefaultSrc(array $srcList)
+    {
+        $this->policy['default-src'] = $srcList;
+        return $this;
+    }
+
+    public function addDefaultSrc($src)
+    {
+        $this->policy['default-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceFontSrc(array $srcList)
+    {
+        $this->policy['font-src'] = $srcList;
+        return $this;
+    }
+
+    public function addFontSrc($src)
+    {
+        $this->policy['font-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceFrameSrc(array $srcList)
+    {
+        $this->policy['frame-src'] = $srcList;
+        return $this;
+    }
+
+    public function addFrameSrc($src)
+    {
+        $this->policy['frame-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceImgSrc(array $srcList)
+    {
+        $this->policy['img-src'] = $srcList;
+        return $this;
+    }
+
+    public function addImgSrc($src)
+    {
+        $this->policy['img-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceMediaSrc(array $srcList)
+    {
+        $this->policy['media-src'] = $srcList;
+        return $this;
+    }
+
+    public function addMediaSrc($src)
+    {
+        $this->policy['media-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceObjectSrc(array $srcList)
+    {
+        $this->policy['object-src'] = $srcList;
+        return $this;
+    }
+
+    public function addObjectSrc($src)
+    {
+        $this->policy['object-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceScriptSrc(array $srcList)
+    {
+        $this->policy['script-src'] = $srcList;
+        return $this;
+    }
+
+    public function addScriptSrc($src)
+    {
+        $this->policy['script-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceStyleSrc(array $srcList)
+    {
+        $this->policy['style-src'] = $srcList;
+        return $this;
+    }
+
+    public function addStyleSrc($src)
+    {
+        $this->policy['style-src'][] = $src;
+        return $this;
+    }
+
+    public function replaceReportUri(array $reportUriList)
+    {
+        $this->policy['report-uri'] = $reportUriList;
+        return $this;
+    }
+
+    public function addReportUri($reportUri)
+    {
+        $this->policy['report-uri'][] = $reportUri;
+        return $this;
     }
 
     /**

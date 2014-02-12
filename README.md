@@ -4,6 +4,32 @@
 
 ## Usage
 
+### Direct header building without silex middleware
+
+For correct CSP header name definition you can use `HeaderNameResolver` class
+
+```php
+$userAgent = new \phpUserAgent($_SERVER['HTTP_USER_AGENT']);
+$resolver = new \KyraD\Stack\Csp\HeaderNameResolver;
+$reportHeaderName = $resolver->getReportCspHeaderName($userAgent);
+$enforceHeaderName = $resolver->getEnforceCspHeaderName($userAgent);
+```
+
+For header value building you can use `Policy` class with fluent interface
+
+```php
+$policy = new  \KyraD\Stack\Csp\Policy([
+    'report-uri' => ['/report'],
+    'script-src' => ['none'],
+    'default-src' => ['*'],
+]);
+$rawHeaderValue = $policy
+    ->addFontSrc('none')
+    ->replaceScriptSrc(['self', 'ajax.googleapis.com'])
+    ->parse()
+    ->getRawHeaderValue();
+```
+
 ### Setting a default CSP
 
 If preferred you can pass a default set of policy rules to be served, which can be overwritten or appended to. The provider accepts an array of CSP directives with a single value or an array of values passed via a `enforce` array.
@@ -14,13 +40,13 @@ If testing out a new CSP you want to make sure it does not break the site. You w
 $app = new Silex\Application();
 
 $cspPolicy = new KyraD\Stack\Csp\Config([
-    'enforce' => [
+    Config::POLICY_ENFORCE => [
         'script-src' => ['none'],
         'font-src'   => 'self',
         'report-uri' => ['/report', 'http://www.example.com'],
         'sandbox'    => ['allow-forms', 'allow-scripts']
     ],
-    'report' => [
+    Config::POLICY_REPORT => [
         'script-src' => ['self', 'http://www.example.com', 'unsafe-inline'],
         'font-src'   => 'self',
         'report-uri' => ['/report', 'http://www.example.com'],
@@ -44,13 +70,15 @@ Stack\run($app);
 To add additional rules to a policy per route *(if a default policy is provided)*, or to create a new one if not, you would do the following:
 
 ```php
+use KyraD\Stack\Csp\Config;
+
 $app->get('...', function (Application $app) {
     // ...
 })->value('cspAdd', [
-    'enforce' => [
+    Config::POLICY_ENFORCE => [
         'script-src' => ['http://cn1.example.com']
     ],
-    'report' => [
+    Config::POLICY_REPORT => [
         'style-src' => ['http://www.example.com']
     ]
 ]);
@@ -61,15 +89,17 @@ $app->get('...', function (Application $app) {
 If you want to remove specific policy rules you would do the following. If a value for a directive is found that matches current policy it will be removed.
 
 ```php
+use KyraD\Stack\Csp\Config;
+
 $app->get('...', function (Application $app) {
     // ...
 })->value('cspRemove', [
-    'enforce' => [
+    Config::POLICY_ENFORCE => [
         'script-src' => ['http://cdn2.example.com'],
         'report-uri' => ['http://example.com:8000'],
         'sandbox'    => ['allow-forms']
     ],
-    'report' => [
+    Config::POLICY_REPORT => [
         'style-src' => ['http://www.google.com'],
         'sandbox'   => ['allow-forms']
     ]
@@ -81,11 +111,13 @@ $app->get('...', function (Application $app) {
 To clear a CSP policy for a route and effectively start to build off an empty policy, you would do the following. This is also how you would completely disable CSP for a route if needed to do so.
 
 ```php
+use KyraD\Stack\Csp\Config;
+
 $app->get('/', function (Application $app) {
     return new Response('');
-})->value('cspReset', 'enforce');
+})->value('cspReset', Config::POLICY_ENFORCE);
 ```
-Values accepted for `Policy::cspReset` are `enforce`, `report` and `all`.
+Values accepted for `Config::cspReset` are `enforce`, `report` and `all`.
 
 ### Caveats
 #### Symfony Web Profiler

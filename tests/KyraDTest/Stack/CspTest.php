@@ -36,7 +36,7 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class CspTest extends PHPUnit_Framework_TestCase
 {
-    /** @var \Symfony\Component\HttpKernel\HttpKernelInterface|\PHPUnit_Framework_MockObject_MockObject */
+    /** @var \PHPUnit_Framework_MockObject_MockObject */
     private $app;
 
     /** @var Config */
@@ -55,7 +55,7 @@ class CspTest extends PHPUnit_Framework_TestCase
     {
         $this->app = $this->getMock('Symfony\Component\HttpKernel\HttpKernelInterface');
         $this->config = new Config();
-        $this->csp = new Csp($this->app, $this->config);
+        $this->csp = new Csp($this->app, $this->config, new Csp\HeaderNameResolver);
     }
 
     public function testSimpleHandle()
@@ -82,7 +82,7 @@ class CspTest extends PHPUnit_Framework_TestCase
         $request = $this->buildRequest();
         $response = $this->buildResponse();
 
-        $this->config->enforcePolicy = ['foo' => ['bar', 'baz']];
+        $this->config->getPolicy(Config::POLICY_ENFORCE)->replaceRules('foo', ['bar', 'baz']);
         $this->app->expects($this->any())->method('handle')->will($this->returnValue($response));
         $request
             ->headers

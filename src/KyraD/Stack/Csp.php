@@ -1,6 +1,8 @@
 <?php
 namespace KyraD\Stack;
 
+use KyraD\Stack\Csp\HeaderNameResolver;
+use KyraD\Stack\Csp\Config;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -17,17 +19,22 @@ class Csp implements HttpKernelInterface
     /** @var \Symfony\Component\HttpKernel\HttpKernelInterface */
     private $app;
 
-    /** @var Csp\Config */
+    /** @var Config */
     private $config;
+
+    /** @var HeaderNameResolver */
+    private $headerNameResolver;
 
     /**
      * @param HttpKernelInterface $app
-     * @param Csp\Config $cspPolicy
+     * @param Config $cspPolicy
+     * @param HeaderNameResolver $headerNameResolver
      */
-    public function __construct(HttpKernelInterface $app, Csp\Config $cspPolicy)
+    public function __construct(HttpKernelInterface $app, Config $cspPolicy, HeaderNameResolver $headerNameResolver)
     {
         $this->app = $app;
         $this->config = $cspPolicy;
+        $this->headerNameResolver = $headerNameResolver;
     }
 
     /**
@@ -45,66 +52,63 @@ class Csp implements HttpKernelInterface
     }
 
     /**
-     * @param $policyType
-     * @return string
-     */
-    private function buildHeaderValue($policyType)
-    {
-        $header = '';
-
-        foreach ($this->config->getPolicy($policyType) as $directive => $values) {
-
-            /** skip empty directives */
-            if (0 < count($values)) {
-                $header .= "$directive " . implode(' ', $values) . ';';
-            }
-        }
-
-        return $header;
-    }
-
-    /**
      * @param Request $request
      * @param Response $response
      */
     private function setCspHeaders(Request $request, Response $response)
     {
-        $cspHeaders = $this->getCspHeaders($request->headers->get('user-agent'));
+        $cspHeaders = $this->getCspHeaders($request);
 
-        if ($this->buildHeaderValue('enforce')) {
-            $response->headers->set($cspHeaders[0], $this->buildHeaderValue('enforce'));
+        $enforceHeaderValue = $this->config->getPolicy(Config::POLICY_ENFORCE)->getRawHeaderValue();
+        if ($enforceHeaderValue) {
+            $response->headers->set($cspHeaders[Config::POLICY_ENFORCE], $enforceHeaderValue);
         }
 
-        if ($this->buildHeaderValue('report')) {
-            $response->headers->set($cspHeaders[1], $this->buildHeaderValue('report'));
+        $reportHeaderValue = $this->config->getPolicy(Config::POLICY_REPORT)->getRawHeaderValue();
+        if ($reportHeaderValue) {
+            $response->headers->set($cspHeaders[Config::POLICY_REPORT], $reportHeaderValue);
+        }
+    }
+
+    private function getCspHeaders(Request $request)
+    {
+        $userAgent = new \phpUserAgent($request->headers->get('user-agent'));
+        return $this->headerNameResolver->getCspHeaders($userAgent);
+    }
+
+    /**
+     * @param Request $request
+     */
+    public function compilePolicy(Request $request)
+    {
+        try {
+            $this->processRoutePolicies($request);
+
+            $this->config->getPolicy(Config::POLICY_ENFORCE)->parse();
+            $this->config->getPolicy(Config::POLICY_REPORT)->parse();
+
+        } catch (\UnexpectedValueException $e) {
+            exit('Unexpected value: ' . $e->getMessage());
         }
     }
 
     /**
-     * @param $userAgent
-     * @return array
-     * @todo Update as vendor headers are dropped (Updated: 2013-12)
+     * @param Request $request
      */
-    private function getCspHeaders($userAgent)
+    private function processRoutePolicies(Request $request)
     {
-        $cspHeader = ['Content-Security-Policy', 'Content-Security-Policy-Report-Only'];
-
-        if (!preg_match('#(Firefox|Chrome|Safari)/(\d+)|(MSIE) (1\d)#', $userAgent, $arr)) {
-            return $cspHeader;
+        if ($request->attributes->get('cspReset')) {
+            $this->config->clearPolicy($request->attributes->get('cspReset'));
         }
 
-        if (('Chrome' === $arr[1] && 14 <= $arr[2] && 24 >= $arr[2]) || ('Safari' === $arr[1] && 6 <= $arr[2])) {
-
-            /** Chrome 14 to 24, Safari 6+ */
-            return ['X-WebKit-CSP', 'X-WebKit-CSP-Report-Only'];
+        if (is_array($request->attributes->get('cspRemove'))) {
+            $policy = $request->attributes->get('cspRemove');
+            array_walk($policy, [$this->config, 'removeFromPolicy']);
         }
 
-        if (('Firefox' === $arr[1] && 4 <= $arr[2] && 22 >= $arr[2]) || ('MSIE' === $arr[1])) {
-
-            /** Firefox 4 to 22, IE 10+ */
-            return ['X-Content-Security-Policy', 'X-Content-Security-Policy-Report-Only'];
+        if (is_array($request->attributes->get('cspAdd'))) {
+            $policy = $request->attributes->get('cspAdd');
+            array_walk($policy, [$this->config, 'addToPolicy']);
         }
-
-        return $cspHeader;
     }
 }

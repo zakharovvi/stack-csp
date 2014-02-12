@@ -1,8 +1,6 @@
 <?php
 namespace KyraD\Stack\Csp;
 
-use Symfony\Component\HttpFoundation\Request;
-
 /**
  * Manages CSP policy arrays
  *
@@ -12,6 +10,9 @@ use Symfony\Component\HttpFoundation\Request;
  */
 class Config
 {
+    const POLICY_ENFORCE = 'enforce';
+    const POLICY_REPORT = 'report';
+
     /** @var Policy */
     private $enforce;
 
@@ -23,70 +24,33 @@ class Config
      */
     public function __construct(array $policies = [])
     {
-        $policy = (isset($policies['enforce'])) ? $policies['enforce'] : [];
+        $policy = (isset($policies[self::POLICY_ENFORCE])) ? $policies[self::POLICY_ENFORCE] : [];
         $this->enforce = new Policy($policy);
 
-        $policy = (isset($policies['report'])) ? $policies['report'] : [];
+        $policy = (isset($policies[self::POLICY_REPORT])) ? $policies[self::POLICY_REPORT] : [];
         $this->report = new Policy($policy);
     }
 
     /**
      * @param $policyType
-     * @return mixed
+     * @return Policy
      */
     public function getPolicy($policyType)
     {
-        return $this->$policyType->getPolicy();
-    }
-
-    /**
-     * @param Request $request
-     */
-    public function compilePolicy(Request $request)
-    {
-        try {
-
-            $this->processRoutePolicies($request);
-
-            $this->enforce->parse();
-            $this->report->parse();
-
-        } catch (\UnexpectedValueException $e) {
-            exit('Unexpected value: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * @param Request $request
-     */
-    private function processRoutePolicies(Request $request)
-    {
-        if ($request->attributes->get('cspReset')) {
-            $this->clearPolicy($request->attributes->get('cspReset'));
-        }
-
-        if (is_array($request->attributes->get('cspRemove'))) {
-            $policy = $request->attributes->get('cspRemove');
-            array_walk($policy, [$this, 'removeFromPolicy']);
-        }
-
-        if (is_array($request->attributes->get('cspAdd'))) {
-            $policy = $request->attributes->get('cspAdd');
-            array_walk($policy, [$this, 'addToPolicy']);
-        }
+        return $this->$policyType;
     }
 
     /**
      * @param $policyType
      * @throws \UnexpectedValueException
      */
-    private function clearPolicy($policyType)
+    public function clearPolicy($policyType)
     {
         switch ($policyType) {
-            case 'enforce':
+            case self::POLICY_ENFORCE:
                 $this->enforce->clear();
                 break;
-            case 'report':
+            case self::POLICY_REPORT:
                 $this->report->clear();
                 break;
             case 'all':
@@ -103,7 +67,7 @@ class Config
      * @param $policyType
      * @throws \UnexpectedValueException
      */
-    private function addToPolicy(array $addPolicy, $policyType)
+    public function addToPolicy(array $addPolicy, $policyType)
     {
         if (!isset($this->$policyType)) {
             throw new \UnexpectedValueException("'cspAdd' supplied an invalid policy type of '$policyType'");
@@ -117,14 +81,14 @@ class Config
      * @param $policyType
      * @throws \UnexpectedValueException
      */
-    private function removeFromPolicy(array $removePolicy, $policyType)
+    public function removeFromPolicy(array $removePolicy, $policyType)
     {
         if (!isset($this->$policyType)) {
             throw new \UnexpectedValueException("invalid policy type of '$policyType' for 'cspRemove'");
         }
 
-        $this->applyPolicyDiff($removePolicy, 'enforce');
-        $this->applyPolicyDiff($removePolicy, 'report');
+        $this->applyPolicyDiff($removePolicy, self::POLICY_ENFORCE);
+        $this->applyPolicyDiff($removePolicy, self::POLICY_REPORT);
     }
 
     /**
@@ -135,11 +99,11 @@ class Config
     {
         foreach ($removePolicy as $key => $values) {
 
-            if (!isset($this->$policyType->getPolicy()[$key])) {
+            if (!isset($this->$policyType->getPolicyRules()[$key])) {
                 continue;
             }
 
-            $rules = $this->$policyType->getPolicy()[$key];
+            $rules = $this->$policyType->getPolicyRules()[$key];
             $this->$policyType->replaceRules($key, array_diff((array)$rules, (array)$values));
         }
     }
