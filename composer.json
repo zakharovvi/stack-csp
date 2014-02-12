@@ -16,7 +16,8 @@
     "require-dev": {
         "phpunit/phpunit":           "~3.7",
         "squizlabs/php_codesniffer": "1.4.*",
-        "satooshi/php-coveralls":    "~0.6"
+        "satooshi/php-coveralls":    "~0.6",
+        "silex/silex": "v1.1.2"
     },
     "suggest": {
         "silex/silex": "Required for 'Csp' stack silex middleware usage"
